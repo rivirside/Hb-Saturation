@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hemoglobin Oxygen Binding Simulator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+    }
+    #controls {
+      flex: 0 0 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    #chartContainer {
+      flex-grow: 1;
+    }
+    #controls input[type=range] {
+      width: 100%;
+    }
+    .k-slider {
+      margin: 10px 0;
+    }
+    .preset-option {
+      margin-bottom: 1em;
+    }
+    #sliderContainer {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <h1>Hemoglobin Oxygen Binding Simulator</h1>
+
+    <div id="sliderContainer">
+      <label for="po2Slider">pO₂ (mmHg): <span id="po2Value">50</span></label>
+      <input type="range" id="po2Slider" min="0" max="150" value="50" step="1">
+    </div>
+
+    <div id="kContainer">
+      <h3>Choose K Values</h3>
+      <div class="preset-option">
+        <input type="radio" name="preset" id="custom" value="custom" checked>
+        <label for="custom">Custom (adjust below)</label>
+      </div>
+      <div class="preset-option">
+        <input type="radio" name="preset" id="winslow" value="winslow">
+        <label for="winslow">Winslow Preset</label>
+      </div>
+
+      <div id="kSliders">
+        <div class="k-slider">K₁: <input type="range" id="k1" min="0.001" max="1" step="0.001" value="0.02"> <span id="k1Val">0.020</span></div>
+        <div class="k-slider">K₂: <input type="range" id="k2" min="0.001" max="1" step="0.001" value="0.04"> <span id="k2Val">0.040</span></div>
+        <div class="k-slider">K₃: <input type="range" id="k3" min="0.001" max="1" step="0.001" value="0.06"> <span id="k3Val">0.060</span></div>
+        <div class="k-slider">K₄: <input type="range" id="k4" min="0.001" max="1" step="0.001" value="0.08"> <span id="k4Val">0.080</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="chartContainer">
+    <canvas id="probabilityChart"></canvas>
+  </div>
+
+  <script>
+    const presets = {
+      winslow: [0.004, 0.043, 0.262, 0.039]
+    };
+    let K = [0.02, 0.04, 0.06, 0.08];
+    const P50 = 26, h = 2.7;
+
+    function binomialCoefficient(n, k) {
+      if (k < 0 || k > n) return 0;
+      let coeff = 1;
+      for (let i = 0; i < k; i++) coeff *= (n - i) / (i + 1);
+      return coeff;
+    }
+
+    function binomialProbability(k, po2) {
+      const p = Math.pow(po2, h) / (Math.pow(P50, h) + Math.pow(po2, h));
+      return binomialCoefficient(4, k) * Math.pow(p, k) * Math.pow(1 - p, 4 - k);
+    }
+
+    function adairProbability(k, po2) {
+      if (k === 0) return 1 / Z(po2);
+      let product = 1;
+      for (let j = 0; j < k; j++) product *= K[j];
+      return (product * Math.pow(po2, k)) / Z(po2);
+    }
+
+    function Z(po2) {
+      let sum = 1;
+      for (let m = 1; m <= 4; m++) {
+        let product = 1;
+        for (let j = 0; j < m; j++) product *= K[j];
+        sum += product * Math.pow(po2, m);
+      }
+      return sum;
+    }
+
+    function updateChart(po2) {
+      const labels = ['0','1','2','3','4'];
+      const binomialData = labels.map((_,k) => binomialProbability(k, po2));
+      const adairData = labels.map((_,k) => adairProbability(k, po2));
+      chart.data.datasets[0].data = binomialData;
+      chart.data.datasets[1].data = adairData;
+      chart.update();
+    }
+
+    const ctx = document.getElementById('probabilityChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['0','1','2','3','4'],
+        datasets: [
+          { label: 'Binomial', backgroundColor: 'blue', data: [] },
+          { label: 'Adair', backgroundColor: 'orange', data: [] }
+        ]
+      },
+      options: {
+        scales: {
+          y: { beginAtZero: true, max: 1, title: { display: true, text: 'Probability' } },
+          x: { title: { display: true, text: 'Bound O₂ (k)' } }
+        }
+      }
+    });
+
+    document.getElementById('po2Slider').addEventListener('input', function() {
+      const po2 = parseFloat(this.value);
+      document.getElementById('po2Value').textContent = po2;
+      updateChart(po2);
+    });
+
+    ['k1','k2','k3','k4'].forEach((id,i) => {
+      document.getElementById(id).addEventListener('input', function() {
+        const val = parseFloat(this.value);
+        document.getElementById(id+'Val').textContent = val.toFixed(3);
+        K[i] = val;
+        updateChart(parseFloat(document.getElementById('po2Slider').value));
+      });
+    });
+
+    document.querySelectorAll('input[name="preset"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        const preset = this.value;
+        if (preset === 'custom') return;
+        K = presets[preset];
+        ['k1','k2','k3','k4'].forEach((id,i) => {
+          const input = document.getElementById(id);
+          input.value = K[i];
+          document.getElementById(id+'Val').textContent = K[i].toFixed(3);
+        });
+        updateChart(parseFloat(document.getElementById('po2Slider').value));
+      });
+    });
+
+    updateChart(parseFloat(document.getElementById('po2Slider').value));
+  </script>
+</body>
+</html>
