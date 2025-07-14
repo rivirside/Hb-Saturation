@@ -2,72 +2,361 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hemoglobin Oxygen Binding Simulator</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      display: flex;
-      flex-direction: row;
-      gap: 20px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #2d3436;
     }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 30px;
+      height: calc(100vh - 40px);
+    }
+
+    /* Header Section */
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: -0.5px;
+    }
+
+    .header p {
+      font-size: 0.95rem;
+      opacity: 0.9;
+      line-height: 1.5;
+    }
+
+    .header a {
+      color: white;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255,255,255,0.5);
+      transition: border-color 0.3s ease;
+    }
+
+    .header a:hover {
+      border-color: white;
+    }
+
+    /* Control Panel */
     #controls {
-      flex: 0 0 300px;
       display: flex;
       flex-direction: column;
       gap: 20px;
+      overflow-y: auto;
+      padding-right: 10px;
     }
-    #chartContainer {
-      flex-grow: 1;
+
+    .control-card {
+      background: white;
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-    #controls input[type=range] {
+
+    .control-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(0,0,0,0.12);
+    }
+
+    .control-card h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #2d3436;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .control-card h3::before {
+      content: '';
+      width: 4px;
+      height: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 2px;
+    }
+
+    /* Sliders */
+    .slider-group {
+      margin-bottom: 20px;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #495057;
+    }
+
+    .slider-value {
+      font-weight: 600;
+      color: #667eea;
+      font-size: 1.1rem;
+      min-width: 50px;
+      text-align: right;
+    }
+
+    input[type="range"] {
       width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #e9ecef;
+      outline: none;
+      -webkit-appearance: none;
+      transition: background 0.3s ease;
     }
-    .k-slider {
-      margin: 10px 0;
+
+    input[type="range"]:hover {
+      background: #dee2e6;
     }
-    .preset-option {
-      margin-bottom: 1em;
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+      transition: transform 0.2s ease;
     }
-    #sliderContainer {
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+      transition: transform 0.2s ease;
+    }
+
+    /* Radio Buttons */
+    .radio-group {
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .radio-option:hover {
+      background: #e9ecef;
+      border-color: #667eea;
+    }
+
+    .radio-option input[type="radio"] {
+      margin-right: 12px;
+      width: 18px;
+      height: 18px;
+      accent-color: #667eea;
+    }
+
+    .radio-option label {
+      cursor: pointer;
+      font-weight: 500;
+      color: #495057;
+    }
+
+    .radio-option input[type="radio"]:checked + label {
+      color: #667eea;
+    }
+
+    /* K-value sliders */
+    .k-sliders {
+      display: grid;
+      gap: 15px;
+    }
+
+    .k-slider-item {
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      transition: background 0.3s ease;
+    }
+
+    .k-slider-item:hover {
+      background: #e9ecef;
+    }
+
+    /* Chart Container */
+    #chartContainer {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #chartContainer canvas {
+      max-height: 100%;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+      .container {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+
+      #controls {
+        max-height: none;
+      }
+
+      #chartContainer {
+        height: 500px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .header h1 {
+        font-size: 1.5rem;
+      }
+
+      .control-card {
+        padding: 20px;
+      }
+    }
+
+    /* Scrollbar Styling */
+    #controls::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #controls::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+
+    #controls::-webkit-scrollbar-thumb {
+      background: #cbd5e0;
+      border-radius: 3px;
+    }
+
+    #controls::-webkit-scrollbar-thumb:hover {
+      background: #a0aec0;
     }
   </style>
 </head>
 <body>
-  <div id="controls">
-    <h1>Hemoglobin Oxygen Binding Simulator</h1>
+  <div class="container">
+    <div id="controls">
+      <div class="header">
+        <h1>Hemoglobin O₂ Binding Simulator</h1>
+        <p>
+          Interactive PMF visualization for binomial and Adair models<br>
+          <a href="https://github.com/rivirside/Hb-Saturation" target="_blank">View source & paper →</a>
+        </p>
+      </div>
 
-    <div id="sliderContainer">
-      <label for="po2Slider">pO₂ (mmHg): <span id="po2Value">50</span></label>
-      <input type="range" id="po2Slider" min="0" max="150" value="50" step="1">
+      <div class="control-card">
+        <h3>Oxygen Partial Pressure</h3>
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>pO₂ (mmHg)</span>
+            <span class="slider-value" id="po2Value">50</span>
+          </div>
+          <input type="range" id="po2Slider" min="0" max="150" value="50" step="1">
+        </div>
+      </div>
+
+      <div class="control-card">
+        <h3>Adair Model K-Values</h3>
+        <div class="radio-group">
+          <div class="radio-option">
+            <input type="radio" name="preset" id="custom" value="custom" checked>
+            <label for="custom">Custom Values</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" name="preset" id="winslow" value="winslow">
+            <label for="winslow">Winslow Preset</label>
+          </div>
+        </div>
+
+        <div class="k-sliders" id="kSliders">
+          <div class="k-slider-item">
+            <div class="slider-label">
+              <span>K₁</span>
+              <span class="slider-value" id="k1Val">0.020</span>
+            </div>
+            <input type="range" id="k1" min="0.001" max="1" step="0.001" value="0.02">
+          </div>
+          <div class="k-slider-item">
+            <div class="slider-label">
+              <span>K₂</span>
+              <span class="slider-value" id="k2Val">0.040</span>
+            </div>
+            <input type="range" id="k2" min="0.001" max="1" step="0.001" value="0.04">
+          </div>
+          <div class="k-slider-item">
+            <div class="slider-label">
+              <span>K₃</span>
+              <span class="slider-value" id="k3Val">0.060</span>
+            </div>
+            <input type="range" id="k3" min="0.001" max="1" step="0.001" value="0.06">
+          </div>
+          <div class="k-slider-item">
+            <div class="slider-label">
+              <span>K₄</span>
+              <span class="slider-value" id="k4Val">0.080</span>
+            </div>
+            <input type="range" id="k4" min="0.001" max="1" step="0.001" value="0.08">
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div id="kContainer">
-      <h3>Choose K Values</h3>
-      <div class="preset-option">
-        <input type="radio" name="preset" id="custom" value="custom" checked>
-        <label for="custom">Custom (adjust below)</label>
-      </div>
-      <div class="preset-option">
-        <input type="radio" name="preset" id="winslow" value="winslow">
-        <label for="winslow">Winslow Preset</label>
-      </div>
-
-      <div id="kSliders">
-        <div class="k-slider">K₁: <input type="range" id="k1" min="0.001" max="1" step="0.001" value="0.02"> <span id="k1Val">0.020</span></div>
-        <div class="k-slider">K₂: <input type="range" id="k2" min="0.001" max="1" step="0.001" value="0.04"> <span id="k2Val">0.040</span></div>
-        <div class="k-slider">K₃: <input type="range" id="k3" min="0.001" max="1" step="0.001" value="0.06"> <span id="k3Val">0.060</span></div>
-        <div class="k-slider">K₄: <input type="range" id="k4" min="0.001" max="1" step="0.001" value="0.08"> <span id="k4Val">0.080</span></div>
-      </div>
+    <div id="chartContainer">
+      <canvas id="probabilityChart"></canvas>
     </div>
-  </div>
-
-  <div id="chartContainer">
-    <canvas id="probabilityChart"></canvas>
   </div>
 
   <script>
@@ -121,14 +410,75 @@
       data: {
         labels: ['0','1','2','3','4'],
         datasets: [
-          { label: 'Binomial', backgroundColor: 'blue', data: [] },
-          { label: 'Adair', backgroundColor: 'orange', data: [] }
+          { 
+            label: 'Binomial Model', 
+            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+            borderColor: 'rgba(59, 130, 246, 1)',
+            borderWidth: 2,
+            data: [] 
+          },
+          { 
+            label: 'Adair Model', 
+            backgroundColor: 'rgba(168, 85, 247, 0.8)',
+            borderColor: 'rgba(168, 85, 247, 1)',
+            borderWidth: 2,
+            data: [] 
+          }
         ]
       },
       options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Probability Mass Function of Hemoglobin Oxygen Binding',
+            font: {
+              size: 18,
+              weight: '600'
+            },
+            padding: 20
+          },
+          legend: {
+            position: 'top',
+            labels: {
+              padding: 20,
+              font: {
+                size: 14,
+                weight: '500'
+              }
+            }
+          }
+        },
         scales: {
-          y: { beginAtZero: true, max: 1, title: { display: true, text: 'Probability' } },
-          x: { title: { display: true, text: 'Bound O₂ (k)' } }
+          y: { 
+            beginAtZero: true, 
+            max: 1, 
+            title: { 
+              display: true, 
+              text: 'Probability', 
+              font: {
+                size: 14,
+                weight: '500'
+              }
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            }
+          },
+          x: { 
+            title: { 
+              display: true, 
+              text: 'Number of Bound O₂ Molecules (k)', 
+              font: {
+                size: 14,
+                weight: '500'
+              }
+            },
+            grid: {
+              display: false
+            }
+          }
         }
       }
     });
@@ -144,6 +494,7 @@
         const val = parseFloat(this.value);
         document.getElementById(id+'Val').textContent = val.toFixed(3);
         K[i] = val;
+        document.querySelectorAll('input[name="preset"]')[0].checked = true; // Switch to custom
         updateChart(parseFloat(document.getElementById('po2Slider').value));
       });
     });
@@ -152,7 +503,7 @@
       radio.addEventListener('change', function() {
         const preset = this.value;
         if (preset === 'custom') return;
-        K = presets[preset];
+        K = [...presets[preset]]; // Create a copy
         ['k1','k2','k3','k4'].forEach((id,i) => {
           const input = document.getElementById(id);
           input.value = K[i];
